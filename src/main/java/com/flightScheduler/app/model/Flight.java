@@ -3,17 +3,21 @@ package com.flightScheduler.app.model;
 import javax.persistence.*;
 
 @Entity
-@Table(name="flight")
+@Table(name = "flight")
 public class Flight {
 
     @Id
     @GeneratedValue
     private Integer id;
 
-    @Column(name="flight_code")
+    @Column(name = "flight_code")
     private String flight_code;
 
     public Flight() {
+    }
+
+    public Flight(String flight_code) {
+        this.flight_code = flight_code;
     }
 
     public Flight(Integer id, String flight_code) {

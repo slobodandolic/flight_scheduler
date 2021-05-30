@@ -1,29 +1,18 @@
 package com.flightScheduler.app.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flightScheduler.app.exceptions.RecordNotPresentException;
 import com.flightScheduler.app.model.Flight;
 import com.flightScheduler.app.model.Gate;
 import com.flightScheduler.app.model.Occupied;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.Assertions;
-import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
-import java.io.DataInput;
-import java.io.IOException;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(SpringExtension.class)
 @Transactional
 public class GateServiceTest {
+
     @Autowired
     GateServiceImpl gateService;
 
@@ -57,7 +47,7 @@ public class GateServiceTest {
     @Test
     public void testViewGateByInvalidId() {
         ResponseEntity<Gate> gateResponseEntity = gateService.viewGate(6);
-        assertEquals("No gate found with ID: 6", gateResponseEntity.getBody());
+        assertEquals("Gate with the given id is not present: 6", gateResponseEntity.getBody());
     }
 
     @Test
@@ -109,9 +99,6 @@ public class GateServiceTest {
         ResponseEntity<Gate> gateResponseEntity = gateService.getLandingGate(flight);
         assertEquals("Provided flight code is invalid or flight has been assigned a gate: " + flight.getFlight_code(), gateResponseEntity.getBody());
     }
-
-
-
 
 
 }

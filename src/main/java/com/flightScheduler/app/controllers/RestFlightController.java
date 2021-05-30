@@ -21,13 +21,12 @@ public class RestFlightController extends RestBaseController {
     GateServiceImpl gateService;
 
     @GetMapping("/flights")
-    public Iterable<Flight> viewAllFlights(){
+    public Iterable<Flight> viewAllFlights() {
         return flightService.getAllFlights();
     }
 
-    @PostMapping("/flight")
+    @PostMapping("/flights")
     public ResponseEntity<Gate> getLandingGate(@RequestBody Flight flight) {
         return gateService.getLandingGate(flight);
     }
-
 }

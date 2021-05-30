@@ -4,7 +4,6 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -22,6 +21,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class GateServiceImpl implements GateService {
 
+    private static final String NO_GATE_FOUND = "Gate with the given id is not present: ";
+    private static final String NO_GATE_AVAILABLE = "No free gates available at this time.";
+    private static final String INVALID_TIME_FORMAT = "You must provide valid time format.";
+    private static final String INVALID_FLIGHT_CODE = "Provided flight code is invalid or flight has been assigned a gate: ";
+
     @Autowired
     GateDao gateDao;
 
@@ -38,12 +42,11 @@ public class GateServiceImpl implements GateService {
         Optional<Gate> findById = gateDao.findById(gateId);
 
         try {
-            if (findById.isPresent()) {
-                Gate gate = findById.get();
-                return new ResponseEntity<Gate>(gate, HttpStatus.OK);
-            } else {
-                throw new RecordNotPresentException("No gate found with ID: " + gateId);
+            if (!findById.isPresent()) {
+                throw new RecordNotPresentException(NO_GATE_FOUND + gateId);
             }
+            Gate gate = findById.get();
+            return new ResponseEntity<Gate>(gate, HttpStatus.OK);
         } catch (RecordNotPresentException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
         }
@@ -55,22 +58,15 @@ public class GateServiceImpl implements GateService {
 
         try {
             if (!findById.isPresent()) {
-                throw new RecordNotPresentException("Gate with the given id is not present: " + gateId);
+                throw new RecordNotPresentException(NO_GATE_FOUND + gateId);
             }
-
             Gate gate = findById.get();
-
-//            if (!LocalTime.now().isBefore(gate.getTime_available())) {
-//                throw new GateNotAvailableAtThisTimeException("Gate: " + gate.getId() + ", is not available at this time. " +
-//                        "It was available until: " + gate.getTime_available());
-//            }
-
             gate.setOccupied(Occupied.FREE);
             gate.setFlight_code("");
             gateDao.save(gate);
             return new ResponseEntity<Gate>(gate, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (RecordNotPresentException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -80,18 +76,17 @@ public class GateServiceImpl implements GateService {
 
         try {
             if (!findById.isPresent()) {
-                throw new RecordNotPresentException("Gate with the given id is not present: " + gateId);
+                throw new RecordNotPresentException(NO_GATE_FOUND + gateId);
             }
-
-            Gate gate = findById.get();
 
             String time = gateTime.truncatedTo(ChronoUnit.MINUTES).toString();
             if (!validateTimeFormat(time)) {
-                throw new InvalidTimeFormatException("You must provide valid time format.");
+                throw new InvalidTimeFormatException(INVALID_TIME_FORMAT);
             }
+
+            Gate gate = findById.get();
             gate.setTime_available(gateTime);
             gateDao.save(gate);
-
             return new ResponseEntity<Gate>(gate, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -104,31 +99,29 @@ public class GateServiceImpl implements GateService {
 
         try {
             if (checkIfFlightIsAlreadyLanded(flight, allGates) || !validateFlightCode(flight.getFlight_code())) {
-                throw new InvalidFlightCodeException("Provided flight code is invalid or flight has been assigned a gate: " + flight.getFlight_code());
+                throw new InvalidFlightCodeException(INVALID_FLIGHT_CODE + flight.getFlight_code());
             }
         } catch (InvalidFlightCodeException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
         try {
-            if (!allGates.isEmpty()) {
-                Optional<Gate> availableGate = allGates.stream().filter(isGateAvailable).findAny();
-                if (availableGate.isPresent()) {
-                    Gate gate = availableGate.get();
-                    gate.setOccupied(Occupied.OCCUPIED);
-                    gate.setFlight_code(flight.getFlight_code());
-                    gateDao.save(gate);
-                    flightDao.save(flight);
-                    return new ResponseEntity<Gate>(availableGate.get(), HttpStatus.OK);
-                } else {
-                    throw new NoFreeGatesException("No free gates available at this time.");
-                }
-
-            } else {
-                throw new NoFreeGatesException("No free gates available at this time.");
-
+            if (allGates.isEmpty()) {
+                throw new NoAvailableGatesException(NO_GATE_AVAILABLE);
             }
-        } catch (NoFreeGatesException e) {
+            Optional<Gate> availableGate = allGates.stream().filter(isGateAvailable).findAny();
+
+            if (!availableGate.isPresent()) {
+                throw new NoAvailableGatesException(NO_GATE_AVAILABLE);
+            }
+
+            Gate gate = availableGate.get();
+            gate.setOccupied(Occupied.OCCUPIED);
+            gate.setFlight_code(flight.getFlight_code());
+            gateDao.save(gate);
+            flightDao.save(flight);
+            return new ResponseEntity<Gate>(availableGate.get(), HttpStatus.OK);
+        } catch (NoAvailableGatesException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
@@ -157,9 +150,9 @@ public class GateServiceImpl implements GateService {
      * It should be followed by a ‘:'(colon).
      * It should be followed by two digits from 00 to 59.
      * It should not end with ‘am’, ‘pm’ or ‘AM’, ‘PM’.
-     *
+     * Maximum value supported 23:59:59
      * @param time String representation of time based on the rules mentioned
-     * @return
+     * @return true if time format is validated
      */
     private boolean validateTimeFormat(String time) {
         if (time == null) {
@@ -171,7 +164,6 @@ public class GateServiceImpl implements GateService {
 
     /**
      * Check if flight has been assigned a gate already
-     *
      * @param flight flight to be checked
      * @param list   list of gates available
      * @return true if flight has been assigned a gate, false if flight hasn't been assigned a gate
