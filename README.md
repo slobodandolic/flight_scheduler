@@ -43,10 +43,10 @@ Get landing gate for flight_code provided in the request body.
 ```
 If there is no gate available it will return an error message.
 
-##/GET /gates  
+## /GET /gates  
 Returns the list of all gates.
 
-###Example response
+### Example response
 ```json
 [
     {
@@ -73,14 +73,14 @@ Returns the gate for the id specified
 Update the gate availability time.
 Time should be provided in format "HH:MM:SS".  
 Maximum value supported "23:59:59".
-##Example request
+## Example request
 ```json
 {
     "id" : 1,
     "time_available" : "23:59:59"
 }
 ```
-##Example response
+## Example response
 ```json
 {
     "id": 1,
@@ -93,13 +93,13 @@ Maximum value supported "23:59:59".
 ## /PUT /gates/freeGate
 Make specified gate free.
 Provide the gate id in the request body.
-###Example request
+### Example request
 ```json
 {
     "id" : "1"
 }  
 ```
-###Example response
+### Example response
 ```json
 {
     "id": 1,
