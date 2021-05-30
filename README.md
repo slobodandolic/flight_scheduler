@@ -6,9 +6,9 @@ Clone the repo
 Run the app
 
 
-#REST API DOCUMENTATION
+# REST API DOCUMENTATION
 
-##baseURI 
+## baseURI 
 ```text
 http://localhost:8080/flightScheduler
 ```
