@@ -5,6 +5,8 @@ Takes a flight code and returns an available gate.
 Clone the repo  
 Run the app
 
+#testPull
+
 
 # REST API DOCUMENTATION
 
